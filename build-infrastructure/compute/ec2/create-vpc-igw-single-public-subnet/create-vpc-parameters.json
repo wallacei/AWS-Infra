@@ -1,0 +1,10 @@
+[
+  {
+    "ParameterKey": "vpccidrblock",
+    "ParameterValue": "10.1.0.0/16"
+  },
+  {
+    "ParameterKey": "publicsubnetaz1cidrblock",
+    "ParameterValue": "10.1.10.0/24" 
+  }
+]
