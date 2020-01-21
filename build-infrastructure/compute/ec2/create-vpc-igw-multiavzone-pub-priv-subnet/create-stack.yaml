@@ -1,0 +1,150 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'AWS CloudFormation template to create a VPC with IGW and Public / Private Subnets'
+Parameters:
+  vpccidrblock:
+    Description: 'VPC CIDR block range'
+    Type: String
+  publicsubnetaz1cidrblock:
+    Description: 'Public Subnet AZ1 CIDR block range'
+    Type: String
+  publicsubnetaz2cidrblock:
+    Description: 'Public Subnet AZ2 CIDR block range'
+    Type: String
+  privatesubnetaz1cidrblock:
+    Description: 'Prvate Subnet AZ1 CIDR block range'
+    Type: String
+  privatesubnetaz2cidrblock:
+    Description: 'Private Subnet AZ2 CIDR block range'
+    Type: String
+Resources:
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 
+        !Ref vpccidrblock
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+      - Key: Name
+        Value:  !Join ['', [!Ref "AWS::StackName", "-vpc" ]]
+  # VPC requires internet access:     
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    DependsOn: VPC
+    Properties:
+      Tags:
+      - Key: Name
+        Value:  !Join ['', [!Ref "AWS::StackName", "-igw" ]]
+  AttachGateway:
+    Type: AWS::EC2::VPCGatewayAttachment
+    # Attach gateway to VPC
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+  # Add Subnets
+  PublicSubnetAZ1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 
+        !Ref publicsubnetaz1cidrblock
+      AvailabilityZone: !Select [ 0, !GetAZs ]    # Get the first AZ in the list       
+      Tags:
+      - Key: Name
+        Value: !Sub ${AWS::StackName}-public-az1-subnet
+  PublicSubnetAZ2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 
+        !Ref publicsubnetaz2cidrblock
+      AvailabilityZone: !Select [ 1, !GetAZs ]    # Get the second AZ in the list 
+      Tags:
+      - Key: Name
+        Value: !Sub ${AWS::StackName}-public-az2-subnet
+  PrivateSubnetAZ1:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock:
+        !Ref privatesubnetaz1cidrblock
+      AvailabilityZone: !Select [ 0, !GetAZs ]    # Get the first AZ in the list 
+      Tags:
+      - Key: Name
+        Value: !Sub ${AWS::StackName}-private-az1-subnet
+  PrivateSubnetAZ2:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock:
+        !Ref privatesubnetaz2cidrblock
+      AvailabilityZone: !Select [ 1, !GetAZs ]    # Get the second AZ in the list 
+      Tags:
+      - Key: Name
+        Value: !Sub ${AWS::StackName}-private-az2-subnet
+  # Public Route tables for public subnets:
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+      - Key: Name
+        Value: !Sub ${AWS::StackName}-public-routetable
+  PublicRoute1:   # Public route table has direct routing to IGW:
+    Type: AWS::EC2::Route
+    DependsOn: AttachGateway
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+  # A NAT Gateway:
+  #NATGateway:
+  #  Type: AWS::EC2::NatGateway
+  #  DependsOn: ElasticIPAddress
+  #  Properties:
+  #    AllocationId: !GetAtt ElasticIPAddress.AllocationId
+  #    SubnetId: !Ref PublicSubnetAZ1
+  #    Tags:
+  #    - Key: Name
+  #      Value: !Sub NAT-${AWS::StackName}
+  ElasticIPAddress:
+    Type: AWS::EC2::EIP
+    Properties:
+      Domain: VPC
+  # Private route table:
+  #PrivateRouteTable:
+  #  Type: AWS::EC2::RouteTable
+  #  Properties:
+  #    VpcId: !Ref VPC
+  #    Tags:
+  #    - Key: Name
+  #      Value: !Sub ${AWS::StackName}-private-routetable
+  #PrivateRoute1:  # Private route table can access web via NAT (created below)
+  #  Type: AWS::EC2::Route
+  #  Properties:
+  #    RouteTableId: !Ref PrivateRouteTable
+  #    DestinationCidrBlock: 0.0.0.0/0
+  #    # Route traffic through the NAT Gateway:
+  #    NatGatewayId: !Ref NATGateway
+  # Attach the public subnets to public route tables,
+  # and attach the private subnets to private route tables:   
+  PublicSubnetARouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnetAZ1
+      RouteTableId: !Ref PublicRouteTable
+  PublicSubnetBRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnetAZ2
+      RouteTableId: !Ref PublicRouteTable
+  PrivateSubnetARouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnetAZ1
+      RouteTableId: !Ref PrivateRouteTable
+  PrivateSubnetBRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnetAZ2
+      RouteTableId: !Ref PrivateRouteTable
