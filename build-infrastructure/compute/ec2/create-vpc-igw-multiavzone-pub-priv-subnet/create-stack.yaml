@@ -138,13 +138,13 @@ Resources:
     Properties:
       SubnetId: !Ref PublicSubnetAZ2
       RouteTableId: !Ref PublicRouteTable
-  PrivateSubnetARouteTableAssociation:
-    Type: AWS::EC2::SubnetRouteTableAssociation
-    Properties:
-      SubnetId: !Ref PrivateSubnetAZ1
-      RouteTableId: !Ref PrivateRouteTable
-  PrivateSubnetBRouteTableAssociation:
-    Type: AWS::EC2::SubnetRouteTableAssociation
-    Properties:
-      SubnetId: !Ref PrivateSubnetAZ2
-      RouteTableId: !Ref PrivateRouteTable
+  #PrivateSubnetARouteTableAssociation:
+  #  Type: AWS::EC2::SubnetRouteTableAssociation
+  #  Properties:
+  #    SubnetId: !Ref PrivateSubnetAZ1
+  #    RouteTableId: !Ref PrivateRouteTable
+  #PrivateSubnetBRouteTableAssociation:
+  #  Type: AWS::EC2::SubnetRouteTableAssociation
+  #  Properties:
+  #    SubnetId: !Ref PrivateSubnetAZ2
+  #    RouteTableId: !Ref PrivateRouteTable
