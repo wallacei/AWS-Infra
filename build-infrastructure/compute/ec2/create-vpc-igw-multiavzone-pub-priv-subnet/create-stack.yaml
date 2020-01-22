@@ -97,37 +97,10 @@ Resources:
       RouteTableId: !Ref PublicRouteTable
       DestinationCidrBlock: 0.0.0.0/0
       GatewayId: !Ref InternetGateway
-  # A NAT Gateway:
-  #NATGateway:
-  #  Type: AWS::EC2::NatGateway
-  #  DependsOn: ElasticIPAddress
-  #  Properties:
-  #    AllocationId: !GetAtt ElasticIPAddress.AllocationId
-  #    SubnetId: !Ref PublicSubnetAZ1
-  #    Tags:
-  #    - Key: Name
-  #      Value: !Sub NAT-${AWS::StackName}
   ElasticIPAddress:
     Type: AWS::EC2::EIP
     Properties:
-      Domain: VPC
-  # Private route table:
-  #PrivateRouteTable:
-  #  Type: AWS::EC2::RouteTable
-  #  Properties:
-  #    VpcId: !Ref VPC
-  #    Tags:
-  #    - Key: Name
-  #      Value: !Sub ${AWS::StackName}-private-routetable
-  #PrivateRoute1:  # Private route table can access web via NAT (created below)
-  #  Type: AWS::EC2::Route
-  #  Properties:
-  #    RouteTableId: !Ref PrivateRouteTable
-  #    DestinationCidrBlock: 0.0.0.0/0
-  #    # Route traffic through the NAT Gateway:
-  #    NatGatewayId: !Ref NATGateway
-  # Attach the public subnets to public route tables,
-  # and attach the private subnets to private route tables:   
+      Domain: VPC 
   PublicSubnetARouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
     Properties:
@@ -138,13 +111,29 @@ Resources:
     Properties:
       SubnetId: !Ref PublicSubnetAZ2
       RouteTableId: !Ref PublicRouteTable
-  #PrivateSubnetARouteTableAssociation:
-  #  Type: AWS::EC2::SubnetRouteTableAssociation
-  #  Properties:
-  #    SubnetId: !Ref PrivateSubnetAZ1
-  #    RouteTableId: !Ref PrivateRouteTable
-  #PrivateSubnetBRouteTableAssociation:
-  #  Type: AWS::EC2::SubnetRouteTableAssociation
-  #  Properties:
-  #    SubnetId: !Ref PrivateSubnetAZ2
-  #    RouteTableId: !Ref PrivateRouteTable
+Outputs:
+  StackVPC:
+    Description: The ID of the VPC
+    Value: !Ref VPC
+    Export: 
+      Name: !Sub "${AWS::StackName}-VPCID"
+  PublicSubnetAZ1:
+    Description: The ID of the Public Subnet in AZ1
+    Value: !Ref PublicSubnetAZ1
+    Export: 
+      Name: !Sub "${AWS::StackName}-PUBSUBAZ1"
+  PublicSubnetAZ2:
+    Description: The ID of the Public Subnet in AZ2
+    Value: !Ref PublicSubnetAZ2
+    Export: 
+      Name: !Sub "${AWS::StackName}-PUBSUBAZ2"
+  PrivateSubnetAZ1:
+    Description: The ID of the Private Subnet in AZ1
+    Value: !Ref PrivateSubnetAZ1
+    Export: 
+      Name: !Sub "${AWS::StackName}-PRIVSUBAZ1"
+  PrivateSubnetAZ2:
+    Description: The ID of the Private Subnet in AZ2
+    Value: !Ref PrivateSubnetAZ2
+    Export: 
+      Name: !Sub "${AWS::StackName}-PRIVSUBAZ2"
