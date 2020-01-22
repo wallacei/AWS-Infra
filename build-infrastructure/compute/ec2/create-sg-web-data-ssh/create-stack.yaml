@@ -9,7 +9,7 @@ Resources:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: Enable SSH access via port 22
-      VpcId: !ImportValue: !Sub "${NetworkStackName}-VPCID"
+      VpcId: !ImportValue !Sub "${NetworkStackName}-VPCID"
       SecurityGroupIngress:
       - CidrIp: 0.0.0.0/0
         FromPort: 22
@@ -19,7 +19,7 @@ Resources:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: Enable SSH access via port 22
-      VpcId: !ImportValue: !Sub "${NetworkStackName}-VPCID"
+      VpcId: !ImportValue !Sub "${NetworkStackName}-VPCID"
       SecurityGroupIngress:
       - SourceSecurityGroupName: !Ref PublicSSHSecurityGroup
         FromPort: 22
@@ -29,7 +29,7 @@ Resources:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: Enable HTTP access via user defined port
-      VpcId: !ImportValue: !Sub "${NetworkStackName}-VPCID"
+      VpcId: !ImportValue !Sub "${NetworkStackName}-VPCID"
       SecurityGroupIngress:
       - CidrIp: 0.0.0.0/0
         FromPort: 80
@@ -39,7 +39,7 @@ Resources:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: Enable HTTP access via user defined port
-      VpcId: !ImportValue: !Sub "${NetworkStackName}-VPCID"
+      VpcId: !ImportValue !Sub "${NetworkStackName}-VPCID"
       SecurityGroupIngress:
       - SourceSecurityGroupName: !Ref WebSecurityGroup
         FromPort: 3306
