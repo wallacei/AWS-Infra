@@ -45,3 +45,24 @@ Resources:
         FromPort: 3306
         IpProtocol: tcp
         ToPort: 3306
+Outputs:
+  PublicSSHSecurityGroup:
+    Description: The ID of the Public SSH Security Group
+    Value: !Ref PublicSSHSecurityGroup
+    Export: 
+      Name: !Sub "${AWS::StackName}-PUBSSHSG"
+  PrivateSSHSecurityGroup:
+    Description: The ID of the Private SSH Security Group
+    Value: !Ref PrivateSSHSecurityGroup
+    Export: 
+      Name: !Sub "${AWS::StackName}-PRIVSSHSG"
+  WebSecurityGroup:
+    Description: The ID of the Web Security Group
+    Value: !Ref WebSecurityGroup
+    Export: 
+      Name: !Sub "${AWS::StackName}-WEBSG"
+  DBSecurityGroup:
+    Description: The ID of the DB Security Group
+    Value: !Ref DBSecurityGroup
+    Export: 
+      Name: !Sub "${AWS::StackName}-DBSG"
