@@ -1,0 +1,47 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'AWS CloudFormation template to create Security Groups for a VPC'
+Parameters:
+  NetworkStackName:
+    Description: 'Name of the network stack'
+    Type: String
+Resources:
+  PublicSSHSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: Fn::ImportValue: !Sub "${NetworkStackName}-VPCID"
+      GroupDescription: Enable SSH access via port 22
+      SecurityGroupIngress:
+      - CidrIp: 0.0.0.0/0
+        FromPort: 22
+        IpProtocol: tcp
+        ToPort: 22
+  PrivateSSHSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: Fn::ImportValue: !Sub "${NetworkStackName}-VPCID"
+      GroupDescription: Enable SSH access via port 22
+      SecurityGroupIngress:
+      - SourceSecurityGroupName: !Ref PublicSSHSecurityGroup
+        FromPort: 22
+        IpProtocol: tcp
+        ToPort: 22
+  WebSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: Fn::ImportValue: !Sub "${NetworkStackName}-VPCID"
+      GroupDescription: Enable HTTP access via user defined port
+      SecurityGroupIngress:
+      - CidrIp: 0.0.0.0/0
+        FromPort: 80
+        IpProtocol: tcp
+        ToPort: 80
+  DBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: Fn::ImportValue: !Sub "${NetworkStackName}-VPCID"
+      GroupDescription: Enable HTTP access via user defined port
+      SecurityGroupIngress:
+      - SourceSecurityGroupName: !Ref WebSecurityGroup
+        FromPort: 3306
+        IpProtocol: tcp
+        ToPort: 3306
