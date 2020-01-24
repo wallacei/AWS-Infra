@@ -1,0 +1,100 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'AWS CloudFormation template to create Security Groups for a VPC'
+
+Parameters:
+  
+  NetworkStackName:
+    Description: >-
+      Name of an active CloudFormation stack that contains the networking
+      resources, such as the VPC and subnet that will be used in this stack.
+    Type: String
+    MinLength: 1
+    MaxLength: 255
+    AllowedPattern: '^[a-zA-Z][-a-zA-Z0-9]*$'
+    Default: base-network-stack
+    
+  IpForSSH:
+    Description: 'Your public IP address to allow SSH access'
+    Type: String
+    AllowedPattern: '^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$'
+    ConstraintDescription: 'Enter a valid IPv4 address'
+    
+Resources:
+  SecurityGroupBastionHost:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: 'Allowing incoming SSH and ICPM from source'
+      VpcId:
+        Fn::ImportValue:
+          !Sub ${NetworkStackName}-vpc
+      SecurityGroupIngress:
+      - IpProtocol: icmp
+        FromPort: "-1"
+        ToPort: "-1"
+        CidrIp: !Sub '${IpForSSH}/32'
+      - IpProtocol: tcp
+        FromPort: 22
+        ToPort: 22
+        CidrIp: !Sub '${IpForSSH}/32'
+      Tags:
+      - Key: Name
+        Value: 'Bastion Host Security Group'
+  SecurityGroupLoadBalancer:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: 'Allowing incoming HTTP/S'
+      VpcId:
+        Fn::ImportValue:
+          !Sub ${NetworkStackName}-vpc
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: 80
+        ToPort: 80
+        CidrIp: 0.0.0.0/0
+      - IpProtocol: tcp
+        FromPort: 443
+        ToPort: 443
+        CidrIp: 0.0.0.0/0
+      Tags:
+      - Key: Name
+        Value: 'Public Load Balancer Security Group'
+  SecurityGroupInstance:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: 'Allowing incoming SSH from the Bastion Host & Web traffic from Load Balancer Security Group'
+      VpcId:
+        Fn::ImportValue:
+          !Sub ${NetworkStackName}-vpc
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: 22
+        ToPort: 22
+        SourceSecurityGroupId: !Ref SecurityGroupBastionHost
+      - IpProtocol: tcp
+        FromPort: 80
+        ToPort: 80
+        SourceSecurityGroupId: !Ref SecurityGroupLoadBalancer
+      - IpProtocol: tcp
+        FromPort: 443
+        ToPort: 443
+        SourceSecurityGroupId: !Ref SecurityGroupLoadBalancer
+      Tags:
+      - Key: Name
+        Value: 'Private Instance Security Group'
+        
+Outputs:
+  SecurityGroupBastionHost:
+    Description: The ID of the Bastian Host Security Group
+    Value: !Ref SecurityGroupBastionHost
+    Export: 
+      Name: !Sub "${AWS::StackName}-sg-bastianhost"
+  SecurityGroupLoadBalancer:
+    Description: The ID of the Load Balancer Security Group
+    Value: !Ref SecurityGroupLoadBalancer
+    Export: 
+      Name: !Sub "${AWS::StackName}-sg-loadbalancer"
+  SecurityGroupInstance:
+    Description: The ID of the EC2 instance Security Group
+    Value: !Ref SecurityGroupInstance
+    Export: 
+      Name: !Sub "${AWS::StackName}-sg-instance"
