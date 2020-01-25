@@ -17,7 +17,7 @@ Resources:
       EnableDnsHostnames: true
       Tags:
       - Key: Name
-        Value:  !Join ['', [!Ref "AWS::StackName", "-VPC" ]]
+        Value:  !Join ['', [!Ref "AWS::StackName", "-vpc" ]]
   # VPC requires internet access:     
   InternetGateway:
     Type: AWS::EC2::InternetGateway
@@ -25,7 +25,7 @@ Resources:
     Properties:
       Tags:
       - Key: Name
-        Value:  !Join ['', [!Ref "AWS::StackName", "-IGW" ]]
+        Value:  !Join ['', [!Ref "AWS::StackName", "-igw" ]]
   AttachGateway:
     Type: AWS::EC2::VPCGatewayAttachment
     # Attach gateway to VPC
@@ -42,7 +42,7 @@ Resources:
       AvailabilityZone: !Select [ 0, !GetAZs ]    # Get the first AZ in the list       
       Tags:
       - Key: Name
-        Value: !Sub ${AWS::StackName}-Public-AZ1
+        Value: !Sub ${AWS::StackName}-publicsubnet-az1
   # Public Route tables for public subnets:
   PublicRouteTable:
     Type: AWS::EC2::RouteTable
@@ -50,7 +50,7 @@ Resources:
       VpcId: !Ref VPCConfig
       Tags:
       - Key: Name
-        Value: PublicRouteTable
+        Value: !Sub ${AWS::StackName}-public-rt
   PublicRoute1:   # Public route table has direct routing to IGW:
     Type: AWS::EC2::Route
     DependsOn: AttachGateway
@@ -65,3 +65,14 @@ Resources:
     Properties:
       SubnetId: !Ref PublicSubnetAZ1
       RouteTableId: !Ref PublicRouteTable
+Outputs:
+  StackVPC:
+    Description: The name of the VPC
+    Value: !Ref VPCConfig
+    Export: 
+      Name: !Sub "${AWS::StackName}-vpc"
+  PublicSubnetAZ1:
+    Description: The ID of the Public Subnet in AZ1
+    Value: !Ref PublicSubnetAZ1
+    Export: 
+      Name: !Sub "${AWS::StackName}-publicsubnet-az1"

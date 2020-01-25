@@ -1,0 +1,18 @@
+[
+  {
+    "ParameterKey": "KeyName",
+    "ParameterValue": "administrator-key-pair-ireland"
+  },
+  {
+    "ParameterKey": "InstanceType",
+    "ParameterValue": "t2.micro" 
+  },
+  {
+    "ParameterKey": "IpForSSH",
+    "ParameterValue": "89.101.127.157" 
+  },
+  {
+    "ParameterKey": "NetworkStackName",
+    "ParameterValue": "base-network-stack" 
+  }
+]

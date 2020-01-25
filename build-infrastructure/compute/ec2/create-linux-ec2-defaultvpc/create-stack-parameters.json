@@ -1,0 +1,10 @@
+[
+  {
+    "ParameterKey": "KeyName",
+    "ParameterValue": "administrator-key-pair-ireland"
+  },
+  {
+    "ParameterKey": "InstanceType",
+    "ParameterValue": "t2.micro" 
+  }
+]

@@ -6,5 +6,9 @@
   {
     "ParameterKey": "publicsubnetaz1cidrblock",
     "ParameterValue": "10.1.10.0/24" 
+  },
+  {
+    "ParameterKey": "privatesubnetaz1cidrblock",
+    "ParameterValue": "10.1.20.0/24" 
   }
 ]

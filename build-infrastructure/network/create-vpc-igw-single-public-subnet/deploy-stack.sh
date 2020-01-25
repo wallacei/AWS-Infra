@@ -14,9 +14,9 @@ echo "Creating stack..."
 STACK_ID=$( \
   aws cloudformation create-stack \
   --stack-name ${STACK_NAME} \
-  --template-body file://${DIR}/create-vpc.yaml \
+  --template-body file://${DIR}/create-stack.yaml \
   --capabilities CAPABILITY_IAM \
-  --parameters file://${DIR}/create-vpc-parameters.json \
+  --parameters file://${DIR}/create-stack-parameters.json \
   | jq -r .StackId \
 )
 

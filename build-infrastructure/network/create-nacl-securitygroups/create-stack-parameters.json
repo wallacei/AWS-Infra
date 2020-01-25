@@ -1,0 +1,10 @@
+[
+  {
+    "ParameterKey": "NetworkStackName",
+    "ParameterValue": "base-network-stack"
+  },
+  {
+    "ParameterKey": "IpForSSH",
+    "ParameterValue": "89.101.127.157"
+  }
+]
