@@ -29,6 +29,8 @@ Parameters:
     #ConstraintDescription: must be a valid IP CIDR range of the form x.x.x.x/x.
     #AllowedPattern: '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}'
     #ConstraintDescription: must be a valid IP CIDR range of the form x.x.x.x
+    AllowedPattern: '^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$'
+    ConstraintDescription: 'Enter a valid IPv4 address'
     
   NetworkStackName:
     Description: >-
@@ -75,10 +77,43 @@ Mappings:
       HVMG2: NOT_SUPPORTED
       
 Resources:
+  # Add instance profile and role
+  InstanceProfile:
+    Type: 'AWS::IAM::InstanceProfile'
+    Properties:
+      Roles:
+      - !Ref Role
+  Role:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - 'ec2.amazonaws.com'
+          Action:
+          - 'sts:AssumeRole'
+      Policies:
+      - PolicyName: ec2-s3access
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Sid: iantestpolicy
+            Effect: Allow
+            Action:
+            - 's3:*'
+            Resource:
+            - '*'
   EC2Instance:
     Type: 'AWS::EC2::Instance'
     Properties:
       InstanceType: !Ref InstanceType
+      # Add an already existing role via pre existing instance profile
+      # IamInstanceProfile: s3access-profile 
+      # Reference an inline instance profile
+      IamInstanceProfile: !Ref InstanceProfile 
       KeyName: !Ref KeyName
       ImageId: !FindInMap 
         - AWSRegionArch2AMI
@@ -95,6 +130,25 @@ Resources:
           SubnetId:
             Fn::ImportValue:
               !Sub ${NetworkStackName}-publicsubnet-az1
+      UserData:
+        'Fn::Base64': !Sub |
+          #!/bin/bash -x
+          bash -ex << "TRY"
+            yum update -y
+            amazon-linux-extras install -y lamp-mariadb10.2-php7.2 php7.2
+            yum install -y httpd mariadb-server
+            systemctl start httpd
+            systemctl enable httpd
+            usermod -a -G apache ec2-user
+            chown -R ec2-user:apache /var/www
+            chmod 2775 /var/www
+            find /var/www -type d -exec chmod 2775 {} \;
+            find /var/www -type f -exec chmod 0664 {} \;
+            echo "<?php phpinfo(); ?>" > /var/www/html/phpinfo.php
+          TRY
+      Tags:
+      - Key: Name
+        Value: !Join ['', [!Ref "AWS::StackName", "-ec2-instance1" ]]
   InstanceSecurityGroup:
     Type: 'AWS::EC2::SecurityGroup'
     Properties:
@@ -121,7 +175,7 @@ Resources:
         CidrIp: 0.0.0.0/0
       Tags:
       - Key: Name
-        Value: 'Instance Security Group'
+        Value: !Join ['', [!Ref "AWS::StackName", "-ec2-instance-sg" ]]
         
 Outputs:
   InstanceId:

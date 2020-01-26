@@ -15,9 +15,9 @@ aws iam add-role-to-instance-profile --instance-profile-name s3access-profile --
 # Attach the role to a running instance
 aws ec2 describe-instances
 
-aws ec2 associate-iam-instance-profile --instance-id i-1234567890abcdef0 --iam-instance-profile Name="s3access-profile"
+aws ec2 associate-iam-instance-profile --instance-id i-008d94cef0ebc1848 --iam-instance-profile Name="s3access-profile"
 
 # Dissacociate a role from an instance
 aws ec2 describe-iam-instance-profile-associations
 
-aws ec2 disassociate-iam-instance-profile --association-id iip-assoc-0044d817db6c0a4ba
+aws ec2 disassociate-iam-instance-profile --association-id iip-assoc-0da9727390b38ce35

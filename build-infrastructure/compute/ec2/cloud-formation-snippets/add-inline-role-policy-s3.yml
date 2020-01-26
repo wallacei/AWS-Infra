@@ -1,0 +1,32 @@
+  # Add instance profile and role
+  InstanceProfile:
+    Type: 'AWS::IAM::InstanceProfile'
+    Properties:
+      Roles:
+      - !Ref Role
+  Role:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - 'ec2.amazonaws.com'
+          Action:
+          - 'sts:AssumeRole'
+      Policies:
+      - PolicyName: ec2-s3access
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Sid: iantestpolicy
+            Effect: Allow
+            Action:
+            - 's3:*'
+            Resource:
+            - '*'
+#            Condition:
+#              StringEquals:
+#                'ec2:ResourceTag/aws:cloudformation:stack-id': !Ref 'AWS::StackId'
