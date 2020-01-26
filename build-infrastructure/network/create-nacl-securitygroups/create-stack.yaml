@@ -81,6 +81,7 @@ Resources:
       Tags:
       - Key: Name
         Value: 'Private Instance Security Group'
+<<<<<<< HEAD
   # Add Public Subnet NACL
   NetworkAclPublicSubnet:
     Type: AWS::EC2::NetworkAcl
@@ -124,6 +125,8 @@ Resources:
       RuleAction: 'allow'
       Egress: 'false'
       CidrBlock: '10.1.0.0/16'
+=======
+>>>>>>> f5ab2a30c41bf84d54a0cf9d66c19de26151cf68
         
 Outputs:
   SecurityGroupBastionHost:
