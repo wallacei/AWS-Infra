@@ -1,0 +1,23 @@
+# AWS CLI commands for Roles & Policies
+
+# Create a role specifying the assume-role-policy-document
+aws iam create-role --role-name s3access --assume-role-policy-document file://ec2-role-trust-policy.json
+
+# Attach a policy to an exisiting role
+aws iam put-role-policy --role-name s3access --policy-name S3-Permissions --policy-document file://ec2-role-access-policy.json
+
+# Create an instance profile
+aws iam create-instance-profile --instance-profile-name s3access-profile
+
+# Add the S3 access role to the instance policy
+aws iam add-role-to-instance-profile --instance-profile-name s3access-profile --role-name s3access
+
+# Attach the role to a running instance
+aws ec2 describe-instances
+
+aws ec2 associate-iam-instance-profile --instance-id i-1234567890abcdef0 --iam-instance-profile Name="s3access-profile"
+
+# Dissacociate a role from an instance
+aws ec2 describe-iam-instance-profile-associations
+
+aws ec2 disassociate-iam-instance-profile --association-id iip-assoc-0044d817db6c0a4ba
