@@ -41,6 +41,16 @@ Parameters:
     MaxLength: 255
     AllowedPattern: '^[a-zA-Z][-a-zA-Z0-9]*$'
     Default: base-network-stack
+    
+  EFSStackName:
+    Description: >-
+      Name of an active CloudFormation stack that contains the EFS
+      resources that will be used in this stack.
+    Type: String
+    MinLength: 1
+    MaxLength: 255
+    AllowedPattern: '^[a-zA-Z][-a-zA-Z0-9]*$'
+    Default: efs-stack
   
   AttachVolume:
     Description: 'Should the volume be attached?'
@@ -118,7 +128,7 @@ Resources:
             - 'ec2:DescribeSnapshots'
             - 'ec2:DeleteSnapshot'
             Resource: '*'
-  EC2Instance:
+  EC2InstanceA:
     Type: 'AWS::EC2::Instance'
     Properties:
       InstanceType: !Ref InstanceType
@@ -139,28 +149,125 @@ Resources:
           DeviceIndex: "0"
           GroupSet: 
             - !Ref InstanceSecurityGroup
+            # EFS Client Security Group Config
+            - Fn::ImportValue: !Sub ${EFSStackName}-efsclientsg
           SubnetId:
             Fn::ImportValue:
               !Sub ${NetworkStackName}-publicsubnet-az1
+      UserData:
+        Fn::Base64: 
+          Fn::Sub: 
+          - |
+            #!/bin/bash -x
+            bash -ex << "TRY"
+              # wait until EFS file system is available
+              while ! nc -z ${EfsFileSystemId}.efs.${AWS::Region}.amazonaws.com 2049; do sleep 10; done
+              sleep 10
+
+              # copy existing /home to /oldhome
+              mkdir /oldhome
+              cp -a /home/. /oldhome
+
+              # mount EFS file system
+              echo "${EfsFileSystemId}.efs.${AWS::Region}.amazonaws.com:/ /home nfs4 nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,_netdev 0 0" >> /etc/fstab
+              mount -a
+
+              # copy /oldhome to new /home
+              cp -a /oldhome/. /home
+            TRY
+            /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource EC2InstanceA --region ${AWS::Region}
+          - EfsFileSystemId:
+              Fn::ImportValue:
+                !Sub "${EFSStackName}-filesystem"
       Tags:
       - Key: Name
-        Value: !Join ['', [!Ref "AWS::StackName", "-ec2-instance1" ]]
-  Volume:
+        Value: !Join ['', [!Ref "AWS::StackName", "-ec2-instance-a" ]]
+    CreationPolicy:
+      ResourceSignal:
+        Timeout: PT10M
+  EC2InstanceB:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      InstanceType: !Ref InstanceType
+      # Add an already existing role via pre existing instance profile
+      # IamInstanceProfile: s3access-profile 
+      # Reference an inline instance profile
+      IamInstanceProfile: !Ref InstanceProfile 
+      KeyName: !Ref KeyName
+      ImageId: !FindInMap 
+        - AWSRegionArch2AMI
+        - !Ref 'AWS::Region'
+        - !FindInMap 
+          - AWSInstanceType2Arch
+          - !Ref InstanceType
+          - Arch
+      NetworkInterfaces: 
+        - AssociatePublicIpAddress: "true"
+          DeviceIndex: "0"
+          GroupSet: 
+            - !Ref InstanceSecurityGroup
+            # EFS Client Security Group Config
+            - Fn::ImportValue: !Sub ${EFSStackName}-efsclientsg
+          SubnetId:
+            Fn::ImportValue:
+              !Sub ${NetworkStackName}-publicsubnet-az2
+      UserData:
+        Fn::Base64: 
+          Fn::Sub: 
+          - |
+            #!/bin/bash -x
+            bash -ex << "TRY"
+              # wait until EFS file system is available
+              while ! nc -z ${EfsFileSystemId}.efs.${AWS::Region}.amazonaws.com 2049; do sleep 10; done
+              sleep 10
+
+              # mount EFS file system
+              echo "${EfsFileSystemId}.efs.${AWS::Region}.amazonaws.com:/ /home nfs4 nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,_netdev 0 0" >> /etc/fstab
+              mount -a
+              
+            TRY
+            /opt/aws/bin/cfn-signal -e $? --stack ${AWS::StackName} --resource EC2InstanceB --region ${AWS::Region}
+          - EfsFileSystemId:
+              Fn::ImportValue:
+                !Sub "${EFSStackName}-filesystem"
+      Tags:
+      - Key: Name
+        Value: !Join ['', [!Ref "AWS::StackName", "-ec2-instance-b" ]]
+    CreationPolicy:
+      ResourceSignal:
+        Timeout: PT10M  
+  VolumeA:
     Type: 'AWS::EC2::Volume'
     Properties:
-      AvailabilityZone: !Sub ${EC2Instance.AvailabilityZone}
+      AvailabilityZone: !Sub ${EC2InstanceA.AvailabilityZone}
       Size: 5
       VolumeType: gp2
       Tags:
       - Key: Name
-        Value: 'ian-test-volume'
-  VolumeAttachment:
+        Value: 'ian-volume-a'
+  VolumeAttachmentA:
     Type: 'AWS::EC2::VolumeAttachment'
     Condition: Attached
     Properties:
       Device: '/dev/xvdf'
-      InstanceId: !Ref EC2Instance
-      VolumeId: !Ref Volume
+      InstanceId: !Ref EC2InstanceA
+      VolumeId: !Ref VolumeA
+  VolumeB:
+    Type: 'AWS::EC2::Volume'
+    Properties:
+      AvailabilityZone: !Sub ${EC2InstanceB.AvailabilityZone}
+      Size: 5
+      VolumeType: gp2
+      Tags:
+      - Key: Name
+        Value: 'ian-volume-b'
+  VolumeAttachmentB:
+    Type: 'AWS::EC2::VolumeAttachment'
+    Condition: Attached
+    Properties:
+      Device: '/dev/xvdf'
+      InstanceId: !Ref EC2InstanceB
+      VolumeId: !Ref VolumeB
   InstanceSecurityGroup:
     Type: 'AWS::EC2::SecurityGroup'
     Properties:
@@ -190,24 +297,45 @@ Resources:
         Value: !Join ['', [!Ref "AWS::StackName", "-ec2-instance-sg" ]]
         
 Outputs:
-  InstanceId:
+  InstanceIdA:
     Description: InstanceId of the newly created EC2 instance
-    Value: !Ref EC2Instance
-  AZ:
+    Value: !Ref EC2InstanceA
+  AZA:
     Description: Availability Zone of the newly created EC2 instance
     Value: !GetAtt 
-      - EC2Instance
+      - EC2InstanceA
       - AvailabilityZone
-  PublicDNS:
+  PublicDNSA:
     Description: Public DNSName of the newly created EC2 instance
     Value: !GetAtt 
-      - EC2Instance
+      - EC2InstanceA
       - PublicDnsName
-  PublicIP:
+  PublicIPA:
     Description: Public IP address of the newly created EC2 instance
     Value: !GetAtt 
-      - EC2Instance
+      - EC2InstanceA
       - PublicIp
-  VolumeId:
-    Value: !Ref Volume
+  VolumeIdA:
+    Value: !Ref VolumeA
+    Description: 'ID of the EBS volume'
+  InstanceIdB:
+    Description: InstanceId of the newly created EC2 instance
+    Value: !Ref EC2InstanceB
+  AZB:
+    Description: Availability Zone of the newly created EC2 instance
+    Value: !GetAtt 
+      - EC2InstanceB
+      - AvailabilityZone
+  PublicDNSB:
+    Description: Public DNSName of the newly created EC2 instance
+    Value: !GetAtt 
+      - EC2InstanceB
+      - PublicDnsName
+  PublicIPB:
+    Description: Public IP address of the newly created EC2 instance
+    Value: !GetAtt 
+      - EC2InstanceB
+      - PublicIp
+  VolumeIdB:
+    Value: !Ref VolumeB
     Description: 'ID of the EBS volume'

@@ -1,0 +1,18 @@
+[
+  {
+    "ParameterKey": "vpccidrblock",
+    "ParameterValue": "10.1.0.0/16"
+  },
+  {
+    "ParameterKey": "publicsubnetaz1cidrblock",
+    "ParameterValue": "10.1.10.0/24" 
+  },
+  {
+    "ParameterKey": "publicsubnetaz2cidrblock",
+    "ParameterValue": "10.1.20.0/24" 
+  },
+  {
+    "ParameterKey": "IpForSSH",
+    "ParameterValue": "89.101.127.157" 
+  }
+]

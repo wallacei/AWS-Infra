@@ -1,0 +1,30 @@
+  # Add instance profile and role
+  InstanceProfile:
+    Type: 'AWS::IAM::InstanceProfile'
+    Properties:
+      Roles:
+      - !Ref Role
+  Role:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service: 
+            - 'ec2.amazonaws.com'
+          Action: 
+          - 'sts:AssumeRole'
+      Policies:
+      - PolicyName: ec2-volume-access
+        PolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Action:
+            - 'ec2:DescribeVolumes'
+            - 'ec2:CreateSnapshot'
+            - 'ec2:DescribeSnapshots'
+            - 'ec2:DeleteSnapshot'
+            Resource: '*'

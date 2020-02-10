@@ -1,0 +1,6 @@
+[
+  {
+    "ParameterKey": "NetworkStackName",
+    "ParameterValue": "base-network-stack" 
+  }
+]

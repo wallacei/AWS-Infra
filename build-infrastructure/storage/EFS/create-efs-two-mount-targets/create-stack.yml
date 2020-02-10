@@ -1,0 +1,73 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'AWS CloudFormation template to create an EFS file system and two mount targets'
+Parameters:
+
+  NetworkStackName:
+    Description: >-
+      Name of an active CloudFormation stack that contains the networking
+      resources, such as the VPC and subnet that will be used in this stack.
+    Type: String
+    MinLength: 1
+    MaxLength: 255
+    AllowedPattern: '^[a-zA-Z][-a-zA-Z0-9]*$'
+    Default: base-network-stack
+    
+Resources:
+  FileSystem:
+    Type: 'AWS::EFS::FileSystem'
+    Properties: {}
+  EFSClientSecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: 'EFS Mount target client'
+      VpcId:
+        Fn::ImportValue:
+          !Sub ${NetworkStackName}-vpc
+      Tags:
+      - Key: Name
+        Value: !Join ['', [!Ref "AWS::StackName", "-efs-client-sg" ]]
+  MountTargetSecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: 'EFS Mount target'
+      SecurityGroupIngress:
+      - FromPort: 2049
+        IpProtocol: tcp
+        SourceSecurityGroupId: !Ref EFSClientSecurityGroup
+        ToPort: 2049
+      VpcId:
+        Fn::ImportValue:
+          !Sub ${NetworkStackName}-vpc
+      Tags:
+      - Key: Name
+        Value: !Join ['', [!Ref "AWS::StackName", "-efs-target-sg" ]]
+  MountTargetA:
+    Type: 'AWS::EFS::MountTarget'
+    Properties:
+      FileSystemId: !Ref FileSystem
+      SecurityGroups:
+      - !Ref MountTargetSecurityGroup
+      SubnetId:
+        Fn::ImportValue:
+            !Sub ${NetworkStackName}-publicsubnet-az1
+  MountTargetB:
+    Type: 'AWS::EFS::MountTarget'
+    Properties:
+      FileSystemId: !Ref FileSystem
+      SecurityGroups:
+      - !Ref MountTargetSecurityGroup
+      SubnetId:
+        Fn::ImportValue:
+            !Sub ${NetworkStackName}-publicsubnet-az2
+      
+Outputs:
+  Filesystem:
+    Description: The reference to the EFS Filesystem
+    Value: !Ref FileSystem
+    Export: 
+      Name: !Sub "${AWS::StackName}-filesystem"
+  EFSClientSecurityGroup:
+    Description: The reference to the EFS Client Security Group
+    Value: !Ref EFSClientSecurityGroup
+    Export: 
+      Name: !Sub "${AWS::StackName}-efsclientsg"

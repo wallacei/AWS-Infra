@@ -1,0 +1,16 @@
+# EBS Volume and Snapshot Commands
+
+# List volumes in a region
+aws ec2 describe-volumes --region eu-west-1 \
+  --filters "Name=size,Value=5" --query "Volumes[].VolumeId" \
+  --output text
+  
+aws ec2 describe-volumes --region eu-west-1   --output table
+
+# Create a snapshot
+aws ec2 create-snapshot --region eu-west-1 --volume-id vol-0894ee2a338f30a96
+
+# Create volume from snapshot
+aws ec2 create-volume --region eu-west-1 \
+ --snapshot-id snap-0c6ac3671595217ee \
+ --availability-zone eu-west-1

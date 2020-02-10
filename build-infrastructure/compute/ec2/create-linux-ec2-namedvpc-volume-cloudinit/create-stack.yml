@@ -41,14 +41,6 @@ Parameters:
     MaxLength: 255
     AllowedPattern: '^[a-zA-Z][-a-zA-Z0-9]*$'
     Default: base-network-stack
-  
-  AttachVolume:
-    Description: 'Should the volume be attached?'
-    Type: String
-    Default: 'yes'
-    AllowedValues:
-    - 'yes'
-    - 'no'
     
 Mappings:
   AWSInstanceType2Arch:
@@ -83,9 +75,6 @@ Mappings:
     eu-west-3:
       HVM64: ami-0dd7e7ed60da8fb83
       HVMG2: NOT_SUPPORTED
-
-Conditions:
-  Attached: !Equals [!Ref AttachVolume, 'yes']
       
 Resources:
   # Add instance profile and role
@@ -120,7 +109,32 @@ Resources:
             Resource: '*'
   EC2Instance:
     Type: 'AWS::EC2::Instance'
+    Metadata:
+      AWS::CloudFormation::Init:
+        config:
+          commands:
+            1_pvcreate:
+              command: pvcreate /dev/xvdf
+            2_vgcreate:
+              command: vgcreate vg0 /dev/xvdf
+            3_lvcreate:
+              command: lvcreate -l 100%FREE -n myapp vg0
+            4_mkfs:
+              command: mkfs.ext4 /dev/vg0/myapp
+            5_mkdir:
+              command: mkdir /var/myapp
+            6_fstab:
+              command: echo "/dev/mapper/vg0-myapp /var/myapp ext4 defaults 0 2" >> /etc/fstab
+            7_mount:
+              command: mount -a
     Properties:
+      BlockDeviceMappings:
+        # Create a separate volume
+        - DeviceName: /dev/sdf
+          Ebs:
+            DeleteOnTermination: false
+            VolumeSize: 10
+            VolumeType: gp2
       InstanceType: !Ref InstanceType
       # Add an already existing role via pre existing instance profile
       # IamInstanceProfile: s3access-profile 
@@ -142,25 +156,16 @@ Resources:
           SubnetId:
             Fn::ImportValue:
               !Sub ${NetworkStackName}-publicsubnet-az1
+      UserData:
+        Fn::Base64: !Sub |
+         #!/usr/bin/env bash
+         set -o errexit
+         yum -y update aws-cfn-bootstrap
+         /opt/aws/bin/cfn-init -v --stack ${AWS::StackName} --resource EC2Instance --region ${AWS::Region}
+         /opt/aws/bin/cfn-signal --exit-code $? --stack ${AWS::StackName} --resource EC2Instance --region ${AWS::Region}
       Tags:
       - Key: Name
         Value: !Join ['', [!Ref "AWS::StackName", "-ec2-instance1" ]]
-  Volume:
-    Type: 'AWS::EC2::Volume'
-    Properties:
-      AvailabilityZone: !Sub ${EC2Instance.AvailabilityZone}
-      Size: 5
-      VolumeType: gp2
-      Tags:
-      - Key: Name
-        Value: 'ian-test-volume'
-  VolumeAttachment:
-    Type: 'AWS::EC2::VolumeAttachment'
-    Condition: Attached
-    Properties:
-      Device: '/dev/xvdf'
-      InstanceId: !Ref EC2Instance
-      VolumeId: !Ref Volume
   InstanceSecurityGroup:
     Type: 'AWS::EC2::SecurityGroup'
     Properties:
@@ -208,6 +213,3 @@ Outputs:
     Value: !GetAtt 
       - EC2Instance
       - PublicIp
-  VolumeId:
-    Value: !Ref Volume
-    Description: 'ID of the EBS volume'

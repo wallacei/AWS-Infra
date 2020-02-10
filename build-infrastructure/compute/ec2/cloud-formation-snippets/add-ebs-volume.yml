@@ -1,0 +1,24 @@
+  Volume:
+    Type: 'AWS::EC2::Volume'
+    Properties:
+      AvailabilityZone: !Sub ${EC2Instance.AvailabilityZone}
+      Size: 5
+      VolumeType: gp2
+      Tags:
+      - Key: Name
+        Value: 'ian-test-volume'
+  VolumeAttachment:
+    Type: 'AWS::EC2::VolumeAttachment'
+    Condition: Attached
+    Properties:
+      Device: '/dev/xvdf'
+      InstanceId: !Ref EC2Instance
+      VolumeId: !Ref Volume
+	  
+Outputs:
+  PublicName:
+    Value: !Sub ${EC2Instance.PublicDnsName}
+    Description: 'Public name (connect via SSH as user ec2-user)'
+  VolumeId:
+    Value: !Ref Volume
+    Description: 'ID of the EBS volume'
